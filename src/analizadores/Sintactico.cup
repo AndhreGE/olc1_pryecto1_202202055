@@ -1,0 +1,52 @@
+package analizadores;
+
+import java_cup.runtime.*;
+
+parser code {:
+    // Conectar el parser al scanner
+    public Sintactico(Lexico lex) {
+        super(lex);
+    }
+
+    // Manejo de Errores Sintácticos
+    public void syntax_error(Symbol cur_token) {
+        System.out.println("Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + " con el token: '" + cur_token.value + "'");
+    }
+:}
+
+/* --- TERMINALES (Vienen del JFlex) --- */
+// Palabras Reservadas
+terminal PR_DATABASE, PR_USE, PR_TABLE, PR_READ, PR_FIELDS, PR_FILTER;
+terminal PR_STORE, PR_AT, PR_EXPORT, PR_ADD, PR_UPDATE, PR_SET, PR_CLEAR;
+
+// Tipos de datos
+terminal TIP_INT, TIP_STRING, TIP_FLOAT, TIP_BOOL, TIP_ARRAY, TIP_OBJECT;
+
+// Signos
+terminal LLAVE_A, LLAVE_C, PAR_A, PAR_C, COR_A, COR_C;
+terminal COMA, PUNTOCOMA, DOSPUNTOS, PUNTO, ASTERISCO, IGUAL;
+
+// Operadores
+terminal IGUAL_IGUAL, DIFERENTE, MENOR, MAYOR, MENOR_IGUAL, MAYOR_IGUAL;
+terminal AND, OR, NOT;
+
+// Valores
+terminal TRUE, FALSE, NULL;
+terminal String ENTERO, DECIMAL, CADENA, ID;
+
+/* --- NO TERMINALES (Variables de la gramática) --- */
+non terminal inicio;
+
+/* --- PRECEDENCIA (De menor a mayor, según PDF pág. 11) --- */
+precedence left OR;             // Nivel 5
+precedence left AND;            // Nivel 4
+precedence left IGUAL_IGUAL, DIFERENTE, MENOR, MAYOR, MENOR_IGUAL, MAYOR_IGUAL; // Nivel 3
+precedence right NOT;           // Nivel 2
+// Nivel 1 son paréntesis, CUP los maneja por gramática
+
+/* --- GRAMÁTICA INICIAL (Solo para probar) --- */
+start with inicio;
+
+inicio ::= 
+    /* Por ahora vacío para que compile */
+    ;
