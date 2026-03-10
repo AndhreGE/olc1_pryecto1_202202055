@@ -16,7 +16,36 @@ add estudiantes {
     edad: 22
 };
 
+add estudiantes {
+    id: 2,
+    nombre: "Mario",
+    edad: 45
+};
+
+add estudiantes {
+    id: 3,
+    nombre: "Toad",
+    edad: 10
+};
+
+
 read estudiantes {
     fields: nombre, edad;
     filter: edad > 20;
 };
+
+update estudiantes {
+    set: edad = 46;
+    filter: nombre == "Mario";
+};
+
+
+read estudiantes {
+    fields: nombre, edad;
+    filter: nombre == "Mario";
+};
+
+
+table temp { i: int; }
+add temp { i: 1 };
+clear temp;

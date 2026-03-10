@@ -6,6 +6,7 @@ import arbol.*;
 import entorno.*;
 
 parser code {:
+    /* Variable para guardar el árbol final */
     public LinkedList<Instruccion> AST;
 
     public Sintactico(Lexico lex) {
@@ -43,13 +44,18 @@ non terminal LinkedList<Simbolo> lista_campos_tabla;
 non terminal Simbolo campo_tabla;
 non terminal Tipo tipo_dato;
 
-/* NUEVO: Lista de valores para insertar */
+/* Listas para Insertar y Leer */
 non terminal LinkedList<Simbolo> lista_valores_insertar; 
 non terminal Simbolo valor_campo;
+non terminal LinkedList<String> lista_campos_leer; 
+non terminal String campo_leer;
 
-non terminal lista_asignaciones_update, asignacion_update;
-non terminal lista_campos_leer, campo_leer;
-non terminal Expresion expresion, term; // Ahora devuelven Expresion
+/* Listas para Update */
+non terminal LinkedList<Simbolo> lista_asignaciones_update; 
+non terminal Simbolo asignacion_update;
+
+/* Expresiones */
+non terminal Expresion expresion, term; 
 
 /* --- PRECEDENCIA --- */
 precedence left OR;
@@ -64,80 +70,68 @@ start with inicio;
 inicio ::= instrucciones:a {: parser.AST = a; RESULT = a; :};
 
 instrucciones ::= 
-    instrucciones:a instruccion:b 
-    {: RESULT = a; if(b != null) RESULT.add(b); :}
-    | instruccion:a 
-    {: RESULT = new LinkedList<>(); if(a != null) RESULT.add(a); :};
+    instrucciones:a instruccion:b {: RESULT = a; if(b != null) RESULT.add(b); :}
+    | instruccion:a {: RESULT = new LinkedList<>(); if(a != null) RESULT.add(a); :};
 
+/* AQUI ERA EL PROBLEMA: Asegúrate de que update y clear devuelvan 'a' (el objeto), no null */
 instruccion ::= 
     def_database:a      {: RESULT = a; :}
     | sentencia_use:a   {: RESULT = a; :}
     | crear_tabla:a     {: RESULT = a; :}
-    | sentencia_read    {: RESULT = null; :}
-    | sentencia_add:a   {: RESULT = a; /* AHORA SI FUNCIONA */ :}
-    | sentencia_update  {: RESULT = null; :}
-    | sentencia_clear   {: RESULT = null; :}
-    | sentencia_export  {: RESULT = null; :};
+    | sentencia_read:a  {: RESULT = a; :}
+    | sentencia_add:a   {: RESULT = a; :}
+    | sentencia_update:a {: RESULT = a; /* AHORA SI */ :}
+    | sentencia_clear:a  {: RESULT = a; /* AHORA SI */ :}
+    | sentencia_export  {: RESULT = null; /* Aun pendiente exportar a otro archivo */ :};
 
 /* 1. DATABASE */
 def_database ::= PR_DATABASE ID:nombre LLAVE_A PR_STORE PR_AT CADENA:ruta PUNTOCOMA LLAVE_C
 {: String rutaLimpia = ruta.replace("\"", ""); RESULT = new CrearBD(nombre, rutaLimpia); :};
 
 /* 2. USE */
-sentencia_use ::= PR_USE ID:nombre PUNTOCOMA
-{: RESULT = new UsarBD(nombre); :};
+sentencia_use ::= PR_USE ID:nombre PUNTOCOMA {: RESULT = new UsarBD(nombre); :};
 
 /* 3. TABLE */
-crear_tabla ::= PR_TABLE ID:nombre LLAVE_A lista_campos_tabla:cols LLAVE_C
-{: RESULT = new CrearTabla(nombre, cols); :};
+crear_tabla ::= PR_TABLE ID:nombre LLAVE_A lista_campos_tabla:cols LLAVE_C {: RESULT = new CrearTabla(nombre, cols); :};
 
-lista_campos_tabla ::= 
-    lista_campos_tabla:l campo_tabla:c {: RESULT = l; RESULT.add(c); :}
-    | campo_tabla:c {: RESULT = new LinkedList<>(); RESULT.add(c); :};
+lista_campos_tabla ::= lista_campos_tabla:l campo_tabla:c {: RESULT = l; RESULT.add(c); :} | campo_tabla:c {: RESULT = new LinkedList<>(); RESULT.add(c); :};
+campo_tabla ::= ID:nombre DOSPUNTOS tipo_dato:t PUNTOCOMA {: RESULT = new Simbolo(nombre, t); :};
 
-campo_tabla ::= ID:nombre DOSPUNTOS tipo_dato:t PUNTOCOMA
-{: RESULT = new Simbolo(nombre, t); :};
+tipo_dato ::= TIP_INT {: RESULT = Tipo.INTEGER; :} | TIP_STRING {: RESULT = Tipo.STRING; :} | TIP_FLOAT {: RESULT = Tipo.FLOAT; :} | TIP_BOOL {: RESULT = Tipo.BOOLEAN; :} | TIP_ARRAY {: RESULT = Tipo.ARRAY; :} | TIP_OBJECT {: RESULT = Tipo.OBJECT; :};
 
-tipo_dato ::= 
-      TIP_INT     {: RESULT = Tipo.INTEGER; :}
-    | TIP_STRING  {: RESULT = Tipo.STRING; :}
-    | TIP_FLOAT   {: RESULT = Tipo.FLOAT; :}
-    | TIP_BOOL    {: RESULT = Tipo.BOOLEAN; :}
-    | TIP_ARRAY   {: RESULT = Tipo.ARRAY; :}
-    | TIP_OBJECT  {: RESULT = Tipo.OBJECT; :};
+/* 4. ADD */
+sentencia_add ::= PR_ADD ID:nombre LLAVE_A lista_valores_insertar:vals LLAVE_C PUNTOCOMA {: RESULT = new Insertar(nombre, vals); :};
+lista_valores_insertar ::= lista_valores_insertar:l COMA valor_campo:v {: RESULT = l; RESULT.add(v); :} | valor_campo:v {: RESULT = new LinkedList<>(); RESULT.add(v); :};
+valor_campo ::= ID:nombre DOSPUNTOS expresion:val {: Simbolo s = new Simbolo(nombre, null); s.valor = val; RESULT = s; :};
 
-/* 4. INSERT (ADD) */
-sentencia_add ::= PR_ADD ID:nombre LLAVE_A lista_valores_insertar:vals LLAVE_C PUNTOCOMA
-{: 
-    RESULT = new Insertar(nombre, vals); 
-:};
+/* 5. READ */
+sentencia_read ::= PR_READ ID:nombre LLAVE_A 
+                   PR_FIELDS DOSPUNTOS lista_campos_leer:cols PUNTOCOMA 
+                   PR_FILTER DOSPUNTOS expresion:filtro PUNTOCOMA 
+                   LLAVE_C PUNTOCOMA
+{: RESULT = new Seleccionar(nombre, cols, filtro); :};
 
-lista_valores_insertar ::= 
-    lista_valores_insertar:l COMA valor_campo:v {: RESULT = l; RESULT.add(v); :}
-    | valor_campo:v {: RESULT = new LinkedList<>(); RESULT.add(v); :};
+lista_campos_leer ::= lista_campos_leer:l COMA campo_leer:c {: RESULT = l; RESULT.add(c); :} | campo_leer:c {: RESULT = new LinkedList<>(); RESULT.add(c); :} | ASTERISCO {: RESULT = null; :};
+campo_leer ::= ID:id {: RESULT = id; :};
 
-valor_campo ::= ID:nombre DOSPUNTOS expresion:val
-{: 
-    // Usamos el Simbolo temporalmente para guardar (NombreColumna -> Expresion)
-    Simbolo s = new Simbolo(nombre, null);
-    s.valor = val; // Guardamos la expresión aquí para evaluarla luego
-    RESULT = s;
-:};
+/* 6. UPDATE (CORREGIDO) */
+sentencia_update ::= 
+    PR_UPDATE ID:nombre LLAVE_A PR_SET DOSPUNTOS lista_asignaciones_update:asig PUNTOCOMA PR_FILTER DOSPUNTOS expresion:filtro PUNTOCOMA LLAVE_C PUNTOCOMA
+    {: RESULT = new Actualizar(nombre, asig, filtro); :}
+    | 
+    PR_UPDATE ID:nombre LLAVE_A PR_SET DOSPUNTOS lista_asignaciones_update:asig PUNTOCOMA LLAVE_C PUNTOCOMA
+    {: RESULT = new Actualizar(nombre, asig, null); :};
 
-/* ... (Update, Read, Clear pendientes) ... */
-sentencia_read ::= PR_READ ID LLAVE_A PR_FIELDS DOSPUNTOS lista_campos_leer PUNTOCOMA PR_FILTER DOSPUNTOS expresion PUNTOCOMA LLAVE_C PUNTOCOMA;
-lista_campos_leer ::= lista_campos_leer COMA campo_leer | campo_leer | ASTERISCO;
-campo_leer ::= ID;
+lista_asignaciones_update ::= lista_asignaciones_update:l COMA asignacion_update:a {: RESULT = l; RESULT.add(a); :} | asignacion_update:a {: RESULT = new LinkedList<>(); RESULT.add(a); :};
+asignacion_update ::= ID:id IGUAL expresion:val {: Simbolo s = new Simbolo(id, null); s.valor = val; RESULT = s; :};
 
-sentencia_update ::= PR_UPDATE ID LLAVE_A PR_SET DOSPUNTOS lista_asignaciones_update PUNTOCOMA PR_FILTER DOSPUNTOS expresion PUNTOCOMA LLAVE_C PUNTOCOMA
-                     | PR_UPDATE ID LLAVE_A PR_SET DOSPUNTOS lista_asignaciones_update PUNTOCOMA LLAVE_C PUNTOCOMA;
-lista_asignaciones_update ::= lista_asignaciones_update COMA asignacion_update | asignacion_update;
-asignacion_update ::= ID IGUAL expresion;
+/* 7. CLEAR (CORREGIDO) */
+sentencia_clear ::= PR_CLEAR ID:nombre PUNTOCOMA {: RESULT = new Limpiar(nombre); :};
 
-sentencia_clear ::= PR_CLEAR ID PUNTOCOMA;
+/* 8. EXPORT (Pendiente) */
 sentencia_export ::= PR_EXPORT CADENA PUNTOCOMA;
 
-/* --- EXPRESIONES --- */
+/* EXPRESIONES */
 expresion ::= 
     expresion:a AND expresion:b           {: RESULT = new Operacion(a, Operador.AND, b); :}
     | expresion:a OR expresion:b            {: RESULT = new Operacion(a, Operador.OR, b); :}
@@ -149,14 +143,19 @@ expresion ::=
     | expresion:a MENOR_IGUAL expresion:b   {: RESULT = new Operacion(a, Operador.MENOR_IGUAL, b); :}
     | expresion:a MAYOR_IGUAL expresion:b   {: RESULT = new Operacion(a, Operador.MAYOR_IGUAL, b); :}
     | PAR_A expresion:e PAR_C               {: RESULT = e; :}
-    | term:t 
+    | term:t                                {: RESULT = t; :}; 
 
-/* --- VALORES PRIMITIVOS (Ahora devuelven objetos Primitivo) --- */
 term ::= 
-    ENTERO:e   {: RESULT = new Primitivo(Integer.parseInt(e), Tipo.INTEGER); :}
+      ENTERO:e   {: RESULT = new Primitivo(Integer.parseInt(e), Tipo.INTEGER); :}
     | DECIMAL:e  {: RESULT = new Primitivo(Double.parseDouble(e), Tipo.FLOAT); :}
     | CADENA:e   {: RESULT = new Primitivo(e.replace("\"", ""), Tipo.STRING); :}
     | TRUE       {: RESULT = new Primitivo(true, Tipo.BOOLEAN); :}
     | FALSE      {: RESULT = new Primitivo(false, Tipo.BOOLEAN); :}
     | NULL       {: RESULT = new Primitivo(null, Tipo.OBJECT); :}
-    | ID:id      {: RESULT = null; /* Pendiente: Manejo de variables */ :};
+    | ID:id      {: RESULT = new Expresion() { 
+                        @Override public Object evaluar(Entorno env) { 
+                            Simbolo s = env.buscar(id); 
+                            return (s != null) ? s : new Simbolo(id, Tipo.OBJECT); 
+                        } 
+                    }; 
+                 :};

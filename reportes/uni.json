@@ -1,6 +1,13 @@
 {
   "database": "universidad",
   "tables": {
+    "temp": {
+      "schema": {
+        "i": "integer"
+      },
+      "records": [
+      ]
+    },
     "estudiantes": {
       "schema": {
         "id": "integer",
@@ -9,7 +16,11 @@
       },
       "records": [
         {"id": 1, "nombre": "Luigi", "edad": 22},
-        {"id": 1, "nombre": "Luigi", "edad": 22}
+        {"id": 1, "nombre": "Luigi", "edad": 22},
+        {"id": 2, "nombre": "Mario", "edad": 46},
+        {"id": 2, "nombre": "Mario", "edad": 46},
+        {"id": 3, "nombre": "Toad", "edad": 10},
+        {"id": 3, "nombre": "Toad", "edad": 10}
       ]
     }
   }
