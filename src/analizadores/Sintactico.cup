@@ -1,52 +1,151 @@
 package analizadores;
 
 import java_cup.runtime.*;
+import java.util.LinkedList;
+import arbol.*;
 
 parser code {:
-    // Conectar el parser al scanner
+    /* Variable para guardar el árbol final (lista de instrucciones) */
+    public LinkedList<Instruccion> AST;
+
+    /* Conectar el parser al scanner */
     public Sintactico(Lexico lex) {
         super(lex);
     }
 
-    // Manejo de Errores Sintácticos
+    /* Manejo de Errores Sintácticos */
     public void syntax_error(Symbol cur_token) {
         System.out.println("Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + " con el token: '" + cur_token.value + "'");
+    }
+
+    /* Manejo de Errores Irrecuperables */
+    public void unrecovered_syntax_error(Symbol cur_token) {
+        System.out.println("Error fatal, no se puede continuar el analisis.");
     }
 :}
 
 /* --- TERMINALES (Vienen del JFlex) --- */
-// Palabras Reservadas
 terminal PR_DATABASE, PR_USE, PR_TABLE, PR_READ, PR_FIELDS, PR_FILTER;
 terminal PR_STORE, PR_AT, PR_EXPORT, PR_ADD, PR_UPDATE, PR_SET, PR_CLEAR;
-
-// Tipos de datos
 terminal TIP_INT, TIP_STRING, TIP_FLOAT, TIP_BOOL, TIP_ARRAY, TIP_OBJECT;
-
-// Signos
 terminal LLAVE_A, LLAVE_C, PAR_A, PAR_C, COR_A, COR_C;
 terminal COMA, PUNTOCOMA, DOSPUNTOS, PUNTO, ASTERISCO, IGUAL;
-
-// Operadores
 terminal IGUAL_IGUAL, DIFERENTE, MENOR, MAYOR, MENOR_IGUAL, MAYOR_IGUAL;
 terminal AND, OR, NOT;
-
-// Valores
 terminal TRUE, FALSE, NULL;
 terminal String ENTERO, DECIMAL, CADENA, ID;
 
-/* --- NO TERMINALES (Variables de la gramática) --- */
-non terminal inicio;
+/* --- NO TERMINALES --- */
+/* AQUI ESTA LA MAGIA: Definimos que estos símbolos devuelven objetos Java */
+non terminal LinkedList<Instruccion> inicio;
+non terminal LinkedList<Instruccion> instrucciones;
+non terminal Instruccion instruccion;
+non terminal Instruccion def_database, sentencia_use;
+/* Los siguientes devolverán null por ahora hasta que creemos sus clases */
+non terminal Instruccion crear_tabla, sentencia_export, sentencia_read, sentencia_add, sentencia_update, sentencia_clear;
 
-/* --- PRECEDENCIA (De menor a mayor, según PDF pág. 11) --- */
-precedence left OR;             // Nivel 5
-precedence left AND;            // Nivel 4
-precedence left IGUAL_IGUAL, DIFERENTE, MENOR, MAYOR, MENOR_IGUAL, MAYOR_IGUAL; // Nivel 3
-precedence right NOT;           // Nivel 2
-// Nivel 1 son paréntesis, CUP los maneja por gramática
+/* Auxiliares */
+non terminal lista_campos_tabla, campo_tabla, tipo_dato;
+non terminal lista_valores_insertar, valor_campo;
+non terminal lista_asignaciones_update, asignacion_update;
+non terminal lista_campos_leer, campo_leer;
+non terminal expresion, term; 
 
-/* --- GRAMÁTICA INICIAL (Solo para probar) --- */
+/* --- PRECEDENCIA --- */
+precedence left OR;
+precedence left AND;
+precedence left IGUAL_IGUAL, DIFERENTE, MENOR, MAYOR, MENOR_IGUAL, MAYOR_IGUAL;
+precedence right NOT;
+
+/* --- GRAMÁTICA --- */
+
 start with inicio;
 
-inicio ::= 
-    /* Por ahora vacío para que compile */
-    ;
+/* Regla Inicial: Al terminar, guardamos la lista en la variable AST del parser */
+inicio ::= instrucciones:a {: parser.AST = a; RESULT = a; :};
+
+/* Construcción de la lista de instrucciones (Recursividad por la izquierda) */
+instrucciones ::= 
+    instrucciones:a instruccion:b 
+    {: 
+        RESULT = a; 
+        if(b != null) RESULT.add(b); /* Solo agregamos si no es null */
+    :}
+    | instruccion:a 
+    {: 
+        RESULT = new LinkedList<>(); 
+        if(a != null) RESULT.add(a); 
+    :};
+
+instruccion ::= 
+    def_database:a      {: RESULT = a; :}
+    | sentencia_use:a   {: RESULT = a; :}
+    | crear_tabla       {: RESULT = null; /* Pendiente */ :}
+    | sentencia_read    {: RESULT = null; /* Pendiente */ :}
+    | sentencia_add     {: RESULT = null; /* Pendiente */ :}
+    | sentencia_update  {: RESULT = null; /* Pendiente */ :}
+    | sentencia_clear   {: RESULT = null; /* Pendiente */ :}
+    | sentencia_export  {: RESULT = null; /* Pendiente */ :};
+
+/* 1. Definición de Base de Datos */
+def_database ::= PR_DATABASE ID:nombre LLAVE_A PR_STORE PR_AT CADENA:ruta PUNTOCOMA LLAVE_C
+{: 
+    /* Quitamos las comillas a la ruta porque viene como "\"ruta\"" */
+    String rutaLimpia = ruta.replace("\"", "");
+    RESULT = new CrearBD(nombre, rutaLimpia); 
+:};
+
+/* 2. Sentencia USE */
+sentencia_use ::= PR_USE ID:nombre PUNTOCOMA
+{: 
+    RESULT = new UsarBD(nombre); 
+:};
+
+/* --- REGLAS PENDIENTES (Sintaxis validada, pero sin acción Java aún) --- */
+
+crear_tabla ::= PR_TABLE ID LLAVE_A lista_campos_tabla LLAVE_C;
+
+lista_campos_tabla ::= lista_campos_tabla campo_tabla | campo_tabla;
+
+campo_tabla ::= ID DOSPUNTOS tipo_dato PUNTOCOMA;
+
+tipo_dato ::= TIP_INT | TIP_STRING | TIP_FLOAT | TIP_BOOL | TIP_ARRAY | TIP_OBJECT;
+
+sentencia_add ::= PR_ADD ID LLAVE_A lista_valores_insertar LLAVE_C PUNTOCOMA;
+
+lista_valores_insertar ::= lista_valores_insertar COMA valor_campo | valor_campo;
+
+valor_campo ::= ID DOSPUNTOS expresion;
+
+sentencia_read ::= PR_READ ID LLAVE_A PR_FIELDS DOSPUNTOS lista_campos_leer PUNTOCOMA PR_FILTER DOSPUNTOS expresion PUNTOCOMA LLAVE_C PUNTOCOMA;
+
+lista_campos_leer ::= lista_campos_leer COMA campo_leer | campo_leer | ASTERISCO;
+
+campo_leer ::= ID;
+
+sentencia_update ::= PR_UPDATE ID LLAVE_A PR_SET DOSPUNTOS lista_asignaciones_update PUNTOCOMA PR_FILTER DOSPUNTOS expresion PUNTOCOMA LLAVE_C PUNTOCOMA
+                     | PR_UPDATE ID LLAVE_A PR_SET DOSPUNTOS lista_asignaciones_update PUNTOCOMA LLAVE_C PUNTOCOMA;
+
+lista_asignaciones_update ::= lista_asignaciones_update COMA asignacion_update | asignacion_update;
+
+asignacion_update ::= ID IGUAL expresion;
+
+sentencia_clear ::= PR_CLEAR ID PUNTOCOMA;
+
+sentencia_export ::= PR_EXPORT CADENA PUNTOCOMA;
+
+/* --- EXPRESIONES (Sin acciones Java todavía) --- */
+expresion ::= 
+    expresion AND expresion
+    | expresion OR expresion
+    | NOT expresion
+    | expresion IGUAL_IGUAL expresion
+    | expresion DIFERENTE expresion
+    | expresion MENOR expresion
+    | expresion MAYOR expresion
+    | expresion MENOR_IGUAL expresion
+    | expresion MAYOR_IGUAL expresion
+    | PAR_A expresion PAR_C
+    | term; 
+
+term ::= ENTERO | DECIMAL | CADENA | TRUE | FALSE | NULL | ID;

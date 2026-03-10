@@ -1,0 +1,22 @@
+database universidad {
+    store at "reportes/uni.json";
+}
+
+use universidad;
+
+table estudiantes {
+    id: int;
+    nombre: string;
+    edad: int;
+}
+
+add estudiantes {
+    id: 1,
+    nombre: "Luigi",
+    edad: 22
+};
+
+read estudiantes {
+    fields: nombre, edad;
+    filter: edad > 20;
+};
