@@ -1,4 +1,16 @@
 {
   "database": "universidad",
-  "tables": []
+  "tables": {
+    "estudiantes": {
+      "schema": {
+        "id": "integer",
+        "nombre": "string",
+        "edad": "integer"
+      },
+      "records": [
+        {"id": 1, "nombre": "Luigi", "edad": 22},
+        {"id": 1, "nombre": "Luigi", "edad": 22}
+      ]
+    }
+  }
 }
