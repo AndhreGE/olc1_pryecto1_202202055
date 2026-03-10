@@ -1,4 +1,4 @@
-package src.main;
+package main;
 
 public class Generador {
     public static void main(String[] args) {
