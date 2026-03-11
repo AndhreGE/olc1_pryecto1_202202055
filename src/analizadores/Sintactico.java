@@ -297,19 +297,24 @@ public class Sintactico extends java_cup.runtime.lr_parser {
 
 
 
-    /* Variable para guardar el árbol final */
     public LinkedList<Instruccion> AST;
 
     public Sintactico(Lexico lex) {
         super(lex);
     }
 
+    // Error recuperable (falta un punto y coma, etc.)
     public void syntax_error(Symbol cur_token) {
-        System.out.println("Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + " con el token: '" + cur_token.value + "'");
+        String desc = "Token inesperado: '" + cur_token.value + "'";
+        entorno.Contexto.getInstancia().agregarError("Sintactico", desc, cur_token.left, cur_token.right);
+        System.out.println("Error sintactico recuperable: " + desc);
     }
 
+    // Error fatal (no se puede seguir)
     public void unrecovered_syntax_error(Symbol cur_token) {
-        System.out.println("Error fatal, no se puede continuar el analisis.");
+        String desc = "Error fatal con token: '" + cur_token.value + "'";
+        entorno.Contexto.getInstancia().agregarError("Sintactico", desc, cur_token.left, cur_token.right);
+        System.out.println("Error sintactico fatal: " + desc);
     }
 
 

@@ -1,32 +1,51 @@
 package entorno;
-import java.util.HashMap;
+
+import interfaz.Excepcion; // <--- IMPORTANTE: Para manejar los errores
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList; // <--- IMPORTANTE: Para la lista
 import java.util.Map;
 
 public class Contexto {
     // Instancia única (Singleton)
     private static Contexto instancia;
     
-    // Base de datos actual (Nombre -> Tabla)
+    // Base de datos actual
     public HashMap<String, Tabla> tablas;
     public String dbActual;
     public String rutaArchivo;
+    
+    // Lista de errores (Lexicos, Sintacticos, Semanticos)
+    public LinkedList<Excepcion> errores;
 
+    // Constructor privado
     private Contexto() {
         tablas = new HashMap<>();
         dbActual = "";
         rutaArchivo = "";
+        errores = new LinkedList<>(); // Inicializamos la lista
     }
 
+    // Método Singleton
     public static Contexto getInstancia() {
         if (instancia == null) {
             instancia = new Contexto();
         }
         return instancia;
     }
+
+    // Método para agregar un error a la lista
+    public void agregarError(String tipo, String desc, String linea, String columna) {
+        errores.add(new Excepcion(tipo, desc, linea, columna));
+    }
     
-    // --- NUEVO MÉTODO PARA GUARDAR ---
+    // Sobrecarga por si pasas int en vez de String
+    public void agregarError(String tipo, String desc, int linea, int columna) {
+        errores.add(new Excepcion(tipo, desc, String.valueOf(linea), String.valueOf(columna)));
+    }
+
+    // Método para guardar el JSON (Persistencia)
     public void actualizarArchivo() {
         if (rutaArchivo.isEmpty()) return;
 
@@ -40,7 +59,7 @@ public class Contexto {
             Tabla t = entry.getValue();
             json.append("    \"").append(t.nombre).append("\": {\n");
             
-            // 1. Schema (Columnas)
+            // 1. Schema
             json.append("      \"schema\": {\n");
             int contadorCols = 0;
             for (Map.Entry<String, Tipo> col : t.columnas.entrySet()) {
@@ -51,7 +70,7 @@ public class Contexto {
             }
             json.append("      },\n");
 
-            // 2. Records (Filas)
+            // 2. Records
             json.append("      \"records\": [\n");
             for (int i = 0; i < t.filas.size(); i++) {
                 json.append("        {");
@@ -62,8 +81,6 @@ public class Contexto {
                     Object valor = celda.getValue();
                     
                     json.append("\"").append(llave).append("\": ");
-                    
-                    // Si es string, poner comillas
                     if (valor instanceof String) {
                         json.append("\"").append(valor).append("\"");
                     } else {
@@ -91,7 +108,6 @@ public class Contexto {
         // Escribir al disco
         try (FileWriter writer = new FileWriter(rutaArchivo)) {
             writer.write(json.toString());
-            // System.out.println("💾 Auto-guardado realizado en: " + rutaArchivo);
         } catch (IOException e) {
             System.err.println("❌ Error al guardar JSON: " + e.getMessage());
         }
@@ -100,5 +116,6 @@ public class Contexto {
     public void limpiar() {
         tablas.clear();
         dbActual = "";
+        errores.clear();
     }
 }

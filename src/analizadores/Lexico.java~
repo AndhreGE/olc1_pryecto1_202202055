@@ -824,7 +824,8 @@ public class Lexico implements java_cup.runtime.Scanner {
       else {
         switch (zzAction < 0 ? zzAction : ZZ_ACTION[zzAction]) {
           case 1:
-            { System.err.println("Error lexico: " + yytext() + " en linea " + (yyline+1) + ", columna " + (yycolumn+1));
+            { entorno.Contexto.getInstancia().agregarError("Lexico", "Simbolo no reconocido: " + yytext(), yyline+1, yycolumn+1);
+    System.err.println("Error lexico: " + yytext());
             }
           // fall through
           case 54: break;

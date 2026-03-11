@@ -125,5 +125,5 @@ COMENTARIO_BLOQUE_CIERRE = "#*"
 
 // Error Léxico (Cualquier cosa no reconocida en estado inicial)
 [^] { 
-    System.err.println("Error lexico: " + yytext() + " en linea " + (yyline+1) + ", columna " + (yycolumn+1)); 
-}
+entorno.Contexto.getInstancia().agregarError("Lexico", "Simbolo no reconocido: " + yytext(), yyline+1, yycolumn+1);
+    System.err.println("Error lexico: " + yytext());}
