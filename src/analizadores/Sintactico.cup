@@ -111,9 +111,9 @@ valor_campo ::= ID:nombre DOSPUNTOS expresion:val {: Simbolo s = new Simbolo(nom
 
 /* 5. READ */
 sentencia_read ::= PR_READ ID:nombre LLAVE_A 
-                   PR_FIELDS DOSPUNTOS lista_campos_leer:cols PUNTOCOMA 
-                   PR_FILTER DOSPUNTOS expresion:filtro PUNTOCOMA 
-                   LLAVE_C PUNTOCOMA
+                PR_FIELDS DOSPUNTOS lista_campos_leer:cols PUNTOCOMA 
+                PR_FILTER DOSPUNTOS expresion:filtro PUNTOCOMA 
+                LLAVE_C PUNTOCOMA
 {: RESULT = new Seleccionar(nombre, cols, filtro); :};
 
 lista_campos_leer ::= lista_campos_leer:l COMA campo_leer:c {: RESULT = l; RESULT.add(c); :} | campo_leer:c {: RESULT = new LinkedList<>(); RESULT.add(c); :} | ASTERISCO {: RESULT = null; :};
@@ -151,7 +151,7 @@ expresion ::=
     | term:t                                {: RESULT = t; :}; 
 
 term ::= 
-      ENTERO:e   {: RESULT = new Primitivo(Integer.parseInt(e), Tipo.INTEGER); :}
+    ENTERO:e   {: RESULT = new Primitivo(Integer.parseInt(e), Tipo.INTEGER); :}
     | DECIMAL:e  {: RESULT = new Primitivo(Double.parseDouble(e), Tipo.FLOAT); :}
     | CADENA:e   {: RESULT = new Primitivo(e.replace("\"", ""), Tipo.STRING); :}
     | TRUE       {: RESULT = new Primitivo(true, Tipo.BOOLEAN); :}
@@ -163,4 +163,4 @@ term ::=
                             return (s != null) ? s : new Simbolo(id, Tipo.OBJECT); 
                         } 
                     }; 
-                 :};
+                :};

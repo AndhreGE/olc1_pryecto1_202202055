@@ -116,7 +116,7 @@ public class Contexto {
         try (FileWriter writer = new FileWriter(rutaArchivo)) {
             writer.write(json.toString());
         } catch (IOException e) {
-            System.err.println("❌ Error al guardar JSON: " + e.getMessage());
+            System.err.println(" Error al guardar JSON: " + e.getMessage());
         }
     }
     
