@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList; // <--- IMPORTANTE: Para la lista
 import java.util.Map;
+import interfaz.Token;
 
 public class Contexto {
     // Instancia única (Singleton)
@@ -18,6 +19,7 @@ public class Contexto {
     
     // Lista de errores (Lexicos, Sintacticos, Semanticos)
     public LinkedList<Excepcion> errores;
+    public LinkedList<Token> tokens;
 
     // Constructor privado
     private Contexto() {
@@ -25,6 +27,7 @@ public class Contexto {
         dbActual = "";
         rutaArchivo = "";
         errores = new LinkedList<>(); // Inicializamos la lista
+        tokens = new LinkedList<>();
     }
 
     // Método Singleton
@@ -43,6 +46,10 @@ public class Contexto {
     // Sobrecarga por si pasas int en vez de String
     public void agregarError(String tipo, String desc, int linea, int columna) {
         errores.add(new Excepcion(tipo, desc, String.valueOf(linea), String.valueOf(columna)));
+    }
+
+    public void agregarToken(String lexema, String tipo, int linea, int columna) {
+        tokens.add(new Token(lexema, tipo, linea, columna));
     }
 
     // Método para guardar el JSON (Persistencia)
@@ -117,5 +124,6 @@ public class Contexto {
         tablas.clear();
         dbActual = "";
         errores.clear();
+        tokens.clear();
     }
 }

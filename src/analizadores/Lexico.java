@@ -391,11 +391,20 @@ public class Lexico implements java_cup.runtime.Scanner {
   private boolean zzEOFDone;
 
   /* user code: */
+    // Método auxiliar para generar tokens y guardarlos en el reporte
     private Symbol symbol(int type, Object value) {
+        // Guardamos en la lista de tokens
+        String nombreToken = sym.terminalNames[type];
+        entorno.Contexto.getInstancia().agregarToken(value.toString(), nombreToken, yyline+1, yycolumn+1);
+        
         return new Symbol(type, yyline+1, yycolumn+1, value);
     }
     
     private Symbol symbol(int type) {
+        // Guardamos en la lista de tokens (usando yytext() para recuperar el texto)
+        String nombreToken = sym.terminalNames[type];
+        entorno.Contexto.getInstancia().agregarToken(yytext(), nombreToken, yyline+1, yycolumn+1);
+        
         return new Symbol(type, yyline+1, yycolumn+1);
     }
 
